@@ -61,7 +61,7 @@ Resources:
   csyeVPC:
     Type: 'AWS::EC2::VPC'
     Properties:
-      CidrBlock: !Sub CidrBlock
+      CidrBlock: !Ref CidrBlock
       EnableDnsHostnames: 'true'
       EnableDnsSupport: 'true'
       InstanceTenancy: default
