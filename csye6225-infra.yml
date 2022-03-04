@@ -152,3 +152,44 @@ Resources:
         Ref: csye6225InternetGateway
       VpcId:
         Ref: csyeVPC
+  application:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Base Security Group
+      SecurityGroupIngress:
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 22
+           ToPort: 22
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 80
+           ToPort: 80
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 443
+           ToPort: 443
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 3000
+           ToPort: 3000
+      VpcId: !Ref myVPC
+  Ec2Instance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref AMI
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      BlockDeviceMappings: 
+      - DeviceName: "/dev/xvda"
+        Ebs: 
+          VolumeType: "gp2"
+          DeleteOnTermination: "false"
+          VolumeSize: "60"
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: "true"
+        DeleteOnTermination: "true"
+        SubnetId: !Ref mySubnet1
+        DeviceIndex: "0"
+        GroupSet:
+        - !Ref application
