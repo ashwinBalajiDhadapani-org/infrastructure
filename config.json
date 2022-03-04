@@ -38,5 +38,13 @@
     {
         "ParameterKey": "Subnet3CidrBlock",
         "ParameterValue": "10.0.0.32/28"
+    },
+    {
+        "ParameterKey": "KeyName",
+        "ParameterValue": "mykey"
+    },
+    {
+        "ParameterKey": "AMI",
+        "ParameterValue": "ami-04e096e4b23b8863d"
     }
 ]
