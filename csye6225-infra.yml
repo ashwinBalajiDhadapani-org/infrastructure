@@ -1,154 +1,456 @@
-Description: Spring2022 CSYE6225 Assignment3, This template is used to spin up a Virtual Private cloud in AWS using AWS cloud Formation
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CSYE 6225 VPC SPIN Script Files
 Parameters:
-  CidrBlock:
+  VpcCidrBlock:
     Description: CIDR block
     Type: String
     Default: 10.0.0.0/26
-  Subnet1Nameval:
-    Description: Defining the name for the first Subnet
+  SubnetReOne:
+    Description: Subnet Region 1
     Type: String
-    Default: "subnet1"
-  Subnet1AvailablityZone:
-    Description: Availabity Zone definition for Subnet1
+  SubnetReTwo:
+    Description: Subnet Region 2
     Type: String
-    Default: "us-east-2a"
-    AllowedValues:
-      - us-east-2a
-      - us-east-2b
-      - us-east-2c
-  Subnet2Nameval:
-    Description: Defining the name for the second Subnet
+  SubnetReThree:
+    Description: Subnet Region 3
     Type: String
-    Default: "subnet2"
-  Subnet2AvailablityZone:
-    Description: Availabity Zone definition for Subnet2
+  SubnetPrivateReOne:
+    Description: Subnet Private Region 1
     Type: String
-    Default: "us-east-2b"
-    AllowedValues:
-      - us-east-2a
-      - us-east-2b
-      - us-east-2c
-  Subnet3Nameval:
-    Description: Defining the name for the third Subnet
+  SubnetPrivateReTwo:
+    Description: Subnet Private Region 2
     Type: String
-    Default: "subnet3"
-  Subnet3AvailablityZone:
-    Description: Availabity Zone definition for Subnet3
+  SubnetPrivateReThree:
+    Description: Subnet Private Region 3
     Type: String
-    Default: "us-east-2c"
-    AllowedValues:
-      - us-east-2a
-      - us-east-2b
-      - us-east-2c
-  Subnet1CidrBlock:
-    Description: Cidr block for subnet1
+  SubnetReOneName:
+    Description: Subnet Region 1 Name
     Type: String
-  Subnet2CidrBlock:
-    Description: Cidr block for subnet1
+  SubnetReTwoName:
+    Description: Subnet Region 2 Name
     Type: String
-  Subnet3CidrBlock:
-    Description: Cidr block for subnet1
+  SubnetReThreeName:
+    Description: Subnet Region 3 Name
     Type: String
-  InternetGatewayName:
-    Description: Defining the name of the internet Gateway
+  SubnetPrivateReOneName:
+    Description: Subnet Private Region 1 Name
     Type: String
-    Default: "IG-AWS-CLI"
-  RouteTableName:
-    Description: Defining the name of the Route Table
+  SubnetPrivateReTwoName:
+    Description: Subnet Private Region 2 Name
     Type: String
-    Default: "RouteTable-AWS-CLI"
+  SubnetPrivateReThreeName:
+    Description: Subnet Private Region 3 Name
+    Type: String
+  SubnetReOneCIDR:
+    Description: Subnet Region 1 Cidr value
+    Type: String
+  SubnetReTwoCIDR:
+    Description: Subnet Region 2 Cidr value
+    Type: String
+  SubnetReThreeCIDR:
+    Description: Subnet Region 3 Cidr value
+    Type: String
+  SubnetPrivateReOneCIDR:
+    Description: Subnet Private Region 1 Cidr value
+    Type: String
+  SubnetPrivateReTwoCIDR:
+    Description: Subnet Private Region 2 Cidr value
+    Type: String
+  SubnetPrivateReThreeCIDR:
+    Description: Subnet Private Region 3 Cidr value
+    Type: String
+  AMI:
+    Description: "AMI for Instance"
+    Type: String
+  KeyName:
+    Description: "Key Name for Instance"
+    Type: String
+  ProfileName:
+    Default: dev
+    Type: String
+    Description: Profile to run 
+  DBInstanceIdentifier:
+    Description: "Instance identifier of db"
+    Type: String
+  DbUserName:
+    Description: "User name of db"
+    Type: String
+  DbPassword:
+    Description: "Password of db"
+    Type: String
+  DbPort:
+    Description: "Port of db"
+    Type: String
+  DbName:
+    Description: "Name of db"
+    Type: String
+  S3BucketName:
+    Description: "Name of S3 bucket"
+    Type: String
+  S3BucketRegion:
+    Description: "Region of S3 bucket"
+    Type: String
+  AwsAccessKey:
+    Description: "AWS access Key"
+    Type: String
+  AwsSecretKey:
+    Description: "AWS secret key"
+    Type: String
+
 Resources:
-  csyeVPC:
+  myVPC:
     Type: 'AWS::EC2::VPC'
     Properties:
-      CidrBlock: !Ref CidrBlock
+      CidrBlock: !Ref VpcCidrBlock
       EnableDnsHostnames: 'true'
       EnableDnsSupport: 'true'
       InstanceTenancy: default
       Tags:
         - Key: Name
           Value: !Ref AWS::StackName
-  csye6225Subnet1:
+  mySubnet1:
     Type: AWS::EC2::Subnet
     Properties: 
-      AvailabilityZone: !Ref Subnet1AvailablityZone
-      CidrBlock: !Ref Subnet1CidrBlock
-      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0,!GetAZs '']
+      CidrBlock: !Ref SubnetReOneCIDR
+      MapPublicIpOnLaunch: false
       VpcId:
-        Ref: csyeVPC
+        Ref: myVPC
       Tags:
         - Key: Name
-          Value: !Ref Subnet1Nameval
-  csye6225Subnet2:
+          Value: !Ref SubnetReOneName
+  mySubnet2:
     Type: AWS::EC2::Subnet
     Properties: 
-      AvailabilityZone: !Ref Subnet2AvailablityZone
-      CidrBlock: !Ref Subnet2CidrBlock
-      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1,!GetAZs '']
+      CidrBlock: !Ref SubnetReTwoCIDR
+      MapPublicIpOnLaunch: false
       VpcId:
-        Ref: csyeVPC
+        Ref: myVPC
       Tags:
         - Key: Name
-          Value: !Ref Subnet2Nameval
-  csye6225Subnet3:
+          Value: !Ref SubnetReTwoName
+  mySubnet3:
     Type: AWS::EC2::Subnet
     Properties: 
-      AvailabilityZone: !Ref Subnet3AvailablityZone
-      CidrBlock: !Ref Subnet3CidrBlock
-      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [2,!GetAZs '']
+      CidrBlock: !Ref SubnetReThreeCIDR
+      MapPublicIpOnLaunch: false
       VpcId:
-        Ref: csyeVPC
+        Ref: myVPC
       Tags:
         - Key: Name
-          Value: !Ref Subnet3Nameval
-  csye6225InternetGateway:
+          Value: !Ref SubnetReThreeName
+  myPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: !Select [0,!GetAZs '']
+      CidrBlock: !Ref SubnetPrivateReOneCIDR
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: myVPC
+      Tags:
+        - Key: Name
+          Value: !Ref SubnetPrivateReOneName
+  myPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: !Select [1,!GetAZs '']
+      CidrBlock: !Ref SubnetPrivateReTwoCIDR
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: myVPC
+      Tags:
+        - Key: Name
+          Value: !Ref SubnetPrivateReTwoName
+  myPrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: !Select [2,!GetAZs '']
+      CidrBlock: !Ref SubnetPrivateReThreeCIDR
+      MapPublicIpOnLaunch: false
+      VpcId:
+        Ref: myVPC
+      Tags:
+        - Key: Name
+          Value: !Ref SubnetPrivateReThreeName
+  myIG:
     Type: AWS::EC2::InternetGateway
     Properties: 
       Tags: 
         - Key: Name
-          Value: !Ref InternetGatewayName
-  csye6225CarrierRoute:
+          Value: "IG-AWS-CLI"
+  myCarrierRoute:
     Type: AWS::EC2::Route
-    DependsOn: csye6225AssignIGVPC
+    DependsOn: myIGVPCAss
     Properties:
       RouteTableId:
-        Ref: csye6225RouteTable
+        Ref: myRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId:
-        Ref: csye6225InternetGateway
-  csye6225RouteTable:
+        Ref: myIG
+  myRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       Tags:
         - Key: Name
-          Value: !Ref RouteTableName
+          Value: "RouteTable-AWS-CLI"
       VpcId:
-        Ref: csyeVPC
-  csye6225AssignRouteTableS1:
+        Ref: myVPC
+  myPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "Private-RouteTable-AWS-CLI"
+      VpcId:
+        Ref: myVPC
+  myRTSubnetAss1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
       RouteTableId:
-        Ref: csye6225RouteTable
+        Ref: myRouteTable
       SubnetId: 
-        Ref: csye6225Subnet1
-  csye6225AssignRouteTableS2:
+        Ref: mySubnet1
+  myRTSubnetAss2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
       RouteTableId: 
-        Ref: csye6225RouteTable
+        Ref: myRouteTable
       SubnetId: 
-        Ref: csye6225Subnet2
-  csye6225AssignRouteTableS3:
+        Ref: mySubnet2
+  myRTSubnetAss3:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
       RouteTableId: 
-        Ref: csye6225RouteTable
+        Ref: myRouteTable
       SubnetId: 
-        Ref: csye6225Subnet3
-  csye6225AssignIGVPC:
+        Ref: mySubnet3
+  myPrivateRTSubnetAss1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId:
+        Ref: myPrivateRouteTable
+      SubnetId: 
+        Ref: myPrivateSubnet1
+  myPrivateRTSubnetAss2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: 
+        Ref: myPrivateRouteTable
+      SubnetId: 
+        Ref: myPrivateSubnet2
+  myPrivateRTSubnetAss3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: 
+        Ref: myPrivateRouteTable
+      SubnetId: 
+        Ref: myPrivateSubnet3
+  myIGVPCAss:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties: 
       InternetGatewayId:
-        Ref: csye6225InternetGateway
+        Ref: myIG
       VpcId:
-        Ref: csyeVPC
+        Ref: myVPC
+  application:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Base Security Group
+      SecurityGroupIngress:
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 22
+           ToPort: 22
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 80
+           ToPort: 80
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 443
+           ToPort: 443
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 3000
+           ToPort: 3000
+      VpcId: !Ref myVPC
+  DatabaseSecurityGroup:
+    DependsOn:
+     - myPrivateSubnet1
+     - myPrivateSubnet2
+     - myPrivateSubnet3
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Database access details
+      SecurityGroupIngress: 
+      - IpProtocol: tcp
+        FromPort: 3306
+        ToPort: 3306
+        SourceSecurityGroupId: !Ref application
+      Tags:
+      - Key: Name
+        Value: database
+      VpcId: !Ref myVPC
+  S3bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Join
+        - "."
+        - - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+          - Ref: "ProfileName"
+          - "dhandapani.ashwinbalaji"
+      AccessControl: Private
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+        - Id: Rule for S3 bucket
+          Prefix: S3 images
+          Status: Enabled
+          Transitions:
+            - TransitionInDays: 30
+              StorageClass: STANDARD_IA
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    DeletionPolicy: Delete
+  RDSDBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties: 
+      Description: mySQL Database for S3
+      Family: mysql8.0
+      Tags: 
+        - Key: Name
+          Value: mysqlRDSparameter
+  RdsDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet Group for mySQL database
+      SubnetIds: 
+        - Ref: myPrivateSubnet1
+        - Ref: myPrivateSubnet2
+        - Ref: myPrivateSubnet3
+  MySqlDbInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: csye6225
+      MasterUsername: !Ref DbUserName
+      MasterUserPassword: !Ref DbPassword
+      Engine: mysql
+      EngineVersion : 8.0.28
+      DBInstanceClass: db.t3.micro
+      DBSubnetGroupName: !Ref RdsDBSubnetGroup
+      StorageType: gp2
+      PubliclyAccessible: False
+      AllocatedStorage: "20"
+      VPCSecurityGroups:
+            - !GetAtt "DatabaseSecurityGroup.GroupId"
+            - !Ref DatabaseSecurityGroup
+      DBInstanceIdentifier: "csye6225"
+      MultiAZ: False
+  RootRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "EC2-CSYE6225"
+      # Policies:
+
+      #   - Ref: RolePolicies
+
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+  DemoInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: demo-ec2-instance-profile
+      Path: /
+      Roles:
+       - !Ref RootRole
+  RolePolicies:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: S3CustomRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:Put*'
+              - 's3:Get*'
+              - 's3:Delete*'
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:PutObjectAcl
+              - s3:ListMultipartUploadParts
+              - s3:AbortMultipartUpload
+              - ec2:RunInstances
+              - ec2:AssociateIamInstanceProfile
+              - ec2:ReplaceIamInstanceProfileAssociation
+              - kms:Decrypt
+              - kms:GenerateDataKey
+              - s3:ListAllMyBuckets
+            Resource:
+              -  !Sub arn:aws:s3:::${S3bucket}
+              -  !Sub arn:aws:s3:::${S3bucket}/*
+      Roles:
+        - Ref: RootRole
+  Ec2Instance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref AMI
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      BlockDeviceMappings: 
+      - DeviceName: "/dev/xvda"
+        Ebs: 
+          VolumeType: "gp2"
+          DeleteOnTermination: "false"
+          VolumeSize: "60"
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: "true"
+        DeleteOnTermination: "true"
+        SubnetId: !Ref mySubnet1
+        DeviceIndex: "0"
+        GroupSet:
+        - !Ref application
+      IamInstanceProfile: !Ref DemoInstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          echo 'export DB_HOSTNAME=${MySqlDbInstance.Endpoint.Address}' >> ~/export_instance_tags.sh
+          echo 'export DB_USERNAME=${DbUserName}' >> ~/export_instance_tags.sh
+          echo 'export DB_PASSWORD=${DbPassword}' >> ~/export_instance_tags.sh
+          echo 'export DB_PORT=${DbPort}' >> ~/export_instance_tags.sh
+          echo 'export DB_NAME=${DbName}' >> ~/export_instance_tags.sh
+          echo 'export S3_BUCKET_NAME=${S3bucket}' >> ~/export_instance_tags.sh
+          echo 'export S3_BUCKET_REGION=${S3BucketRegion}' >> ~/export_instance_tags.sh
+          echo 'export AWS_ACCESS_KEY=${AwsAccessKey}' >> ~/export_instance_tags.sh
+          echo 'export AWS_SECRET_KEY=${AwsSecretKey}' >> ~/export_instance_tags.sh
+          chmod +x ~/export_instance_tags.sh
+          sudo cp ~/export_instance_tags.sh /etc/profile.d/export_instance_tags.sh
+          source /etc/profile
+          cd /home/ec2-user/node-app/
+          sudo systemctl restart node-service.service
