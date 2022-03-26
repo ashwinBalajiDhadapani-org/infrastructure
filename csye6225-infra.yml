@@ -454,3 +454,4 @@ Resources:
           source /etc/profile
           cd /home/ec2-user/node-app/
           sudo systemctl restart node-service.service
+
