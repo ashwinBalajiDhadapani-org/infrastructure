@@ -5,27 +5,27 @@
     },
     {
         "ParameterKey": "SubnetReOne",
-        "ParameterValue": "us-east-1a"
+        "ParameterValue": "us-east-2a"
     },
     {
         "ParameterKey": "SubnetReTwo",
-        "ParameterValue": "us-east-1b"
+        "ParameterValue": "us-east-2b"
     },
     {
         "ParameterKey": "SubnetReThree",
-        "ParameterValue": "us-east-1c"
+        "ParameterValue": "us-east-2c"
     },
     {
         "ParameterKey": "SubnetPrivateReOne",
-        "ParameterValue": "us-east-1a"
+        "ParameterValue": "us-east-2a"
     },
     {
         "ParameterKey": "SubnetPrivateReTwo",
-        "ParameterValue": "us-east-1b"
+        "ParameterValue": "us-east-2b"
     },
     {
         "ParameterKey": "SubnetPrivateReThree",
-        "ParameterValue": "us-east-1c"
+        "ParameterValue": "us-east-2c"
     },
     {
         "ParameterKey": "SubnetReOneName",
@@ -81,7 +81,7 @@
     },
     {
         "ParameterKey": "AMI",
-        "ParameterValue": "ami-08a1b7e7022639bc0"
+        "ParameterValue": "ami-05d5dc2c5d7fac26e"
     },
     {
         "ParameterKey": "DBInstanceIdentifier",
@@ -105,18 +105,18 @@
     },
     {
         "ParameterKey": "S3BucketName",
-        "ParameterValue": "dev.domain.tld"
+        "ParameterValue": "prod.domain.tld"
     },
     {
         "ParameterKey": "S3BucketRegion",
-        "ParameterValue": "us-east-1"
+        "ParameterValue": "us-east-2"
     },
     {
         "ParameterKey": "AwsAccessKey",
-        "ParameterValue": "AKIAWFS6DJLO2J3WEYXX"
+        "ParameterValue": "AKIASVYDINRHEXSVB6WM"
     },
     {
         "ParameterKey": "AwsSecretKey",
-        "ParameterValue": "neTc095YNyTjbE6bdsxqCip2Wq7NflbfB2FnphSs"
+        "ParameterValue": "MQZRVnRjEYzXKSftjhoIGjHnEOO8fp8Cdbb+LWRk"
     }
 ]
