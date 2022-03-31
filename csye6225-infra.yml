@@ -508,7 +508,7 @@ Resources:
           sudo pm2 restart all --update-env
           sudo pm2 save
           sudo systemctl daemon-reload
-          cd /home/ec2-user/node-app
+          cd /home/ec2-user/node_app
           sudo systemctl start node-service.service
       LaunchConfigurationName: !Join
         - "."
