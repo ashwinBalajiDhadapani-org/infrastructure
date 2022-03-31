@@ -110,6 +110,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref AWS::StackName
+  
   mySubnet1:
     Type: AWS::EC2::Subnet
     Properties: 
@@ -121,6 +122,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref SubnetReOneName
+  
   mySubnet2:
     Type: AWS::EC2::Subnet
     Properties: 
@@ -132,6 +134,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref SubnetReTwoName
+  
   mySubnet3:
     Type: AWS::EC2::Subnet
     Properties: 
@@ -143,6 +146,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref SubnetReThreeName
+  
   myPrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties: 
@@ -154,6 +158,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref SubnetPrivateReOneName
+  
   myPrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties: 
@@ -165,6 +170,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref SubnetPrivateReTwoName
+  
   myPrivateSubnet3:
     Type: AWS::EC2::Subnet
     Properties: 
@@ -176,12 +182,14 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref SubnetPrivateReThreeName
+  
   myIG:
     Type: AWS::EC2::InternetGateway
     Properties: 
       Tags: 
         - Key: Name
           Value: "IG-AWS-CLI"
+  
   myCarrierRoute:
     Type: AWS::EC2::Route
     DependsOn: myIGVPCAss
@@ -191,6 +199,7 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId:
         Ref: myIG
+  
   myRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -199,6 +208,7 @@ Resources:
           Value: "RouteTable-AWS-CLI"
       VpcId:
         Ref: myVPC
+  
   myPrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -207,6 +217,7 @@ Resources:
           Value: "Private-RouteTable-AWS-CLI"
       VpcId:
         Ref: myVPC
+  
   myRTSubnetAss1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
@@ -214,6 +225,7 @@ Resources:
         Ref: myRouteTable
       SubnetId: 
         Ref: mySubnet1
+  
   myRTSubnetAss2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
@@ -221,6 +233,7 @@ Resources:
         Ref: myRouteTable
       SubnetId: 
         Ref: mySubnet2
+  
   myRTSubnetAss3:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
@@ -228,6 +241,7 @@ Resources:
         Ref: myRouteTable
       SubnetId: 
         Ref: mySubnet3
+  
   myPrivateRTSubnetAss1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
@@ -235,6 +249,7 @@ Resources:
         Ref: myPrivateRouteTable
       SubnetId: 
         Ref: myPrivateSubnet1
+  
   myPrivateRTSubnetAss2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
@@ -242,6 +257,7 @@ Resources:
         Ref: myPrivateRouteTable
       SubnetId: 
         Ref: myPrivateSubnet2
+  
   myPrivateRTSubnetAss3:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties: 
@@ -249,6 +265,7 @@ Resources:
         Ref: myPrivateRouteTable
       SubnetId: 
         Ref: myPrivateSubnet3
+  
   myIGVPCAss:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties: 
@@ -256,6 +273,7 @@ Resources:
         Ref: myIG
       VpcId:
         Ref: myVPC
+  
   csye6225LoadBalancerSecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -271,6 +289,7 @@ Resources:
         FromPort: 443
         ToPort: 443
       VpcId: !Ref myVPC
+  
   application:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -293,6 +312,7 @@ Resources:
            FromPort: 3000
            ToPort: 3000
       VpcId: !Ref myVPC
+  
   DatabaseSecurityGroup:
     DependsOn:
      - myPrivateSubnet1
@@ -310,6 +330,7 @@ Resources:
       - Key: Name
         Value: database
       VpcId: !Ref myVPC
+  
   S3bucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -345,6 +366,7 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
     DeletionPolicy: Delete
+  
   RDSDBParameterGroup:
     Type: AWS::RDS::DBParameterGroup
     Properties: 
@@ -353,6 +375,7 @@ Resources:
       Tags: 
         - Key: Name
           Value: mysqlRDSparameter
+  
   RdsDBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -361,6 +384,7 @@ Resources:
         - Ref: myPrivateSubnet1
         - Ref: myPrivateSubnet2
         - Ref: myPrivateSubnet3
+  
   MySqlDbInstance:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -379,6 +403,7 @@ Resources:
             - !Ref DatabaseSecurityGroup
       DBInstanceIdentifier: "csye6225"
       MultiAZ: False
+  
   RootRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -394,6 +419,7 @@ Resources:
             Action:
               - "sts:AssumeRole"
       Path: "/"
+  
   DemoInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -401,6 +427,7 @@ Resources:
       Path: /
       Roles:
        - !Ref RootRole
+  
   RolePolicies:
     Type: 'AWS::IAM::Policy'
     Properties:
@@ -430,6 +457,24 @@ Resources:
               -  !Sub arn:aws:s3:::${S3bucket}/*
       Roles:
         - Ref: RootRole
+
+  Ec2CodeDeployS3Policy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "EC2-CodeDeploy-S3"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:Get*"
+              - "s3:List*"
+            Resource:
+              - arn:aws:s3:::testcsye6225demo
+              - arn:aws:s3:::testcsye6225demo/*
+      Roles:
+        - Ref: RootRole
+
   AutoScalingLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
@@ -438,10 +483,10 @@ Resources:
       InstanceType: "t2.micro"
       KeyName: !Ref KeyName
       BlockDeviceMappings: 
-      - DeviceName: "/dev/sdm"
+      - DeviceName: "/dev/xvda"
         Ebs: 
           VolumeType: "gp2"
-          DeleteOnTermination: "false"
+          DeleteOnTermination: "true"
           VolumeSize: "20"
       AssociatePublicIpAddress: "true"
       SecurityGroups:
@@ -477,6 +522,7 @@ Resources:
                   - "/"
                   - !Ref "AWS::StackId"
           - "asg_launch_config"
+  
   AutoscalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
@@ -495,6 +541,7 @@ Resources:
         - Key: Name
           Value: CSYE6225-CloudApplication-ASG
           PropagateAtLaunch: "true"
+  
   csye6225LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -508,6 +555,7 @@ Resources:
       - !Ref mySubnet3
       SecurityGroups: 
       - !Ref csye6225LoadBalancerSecGroup
+  
   CPUAlarmHigh:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -524,6 +572,7 @@ Resources:
         Value: !Ref AutoscalingGroup
       ComparisonOperator: GreaterThanThreshold
       MetricName: CPUUtilization
+  
   CPUAlarmLow:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -594,3 +643,55 @@ Resources:
         AliasTarget:
           HostedZoneId: !GetAtt 'csye6225LoadBalancer.CanonicalHostedZoneID'
           DNSName: !GetAtt 'csye6225LoadBalancer.DNSName'
+    
+  codeDeployServiceRoleEC2:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Sid: codeDeployServiceRoleEC2
+          Effect: Allow
+          Principal:
+            Service: codedeploy.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      RoleName: codeDeployServiceRoleEC2
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+      - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: "${AWS::StackName}-codeDeployServiceRoleEC2"
+  
+  WebappApplication:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ApplicationName: csye6225-webapp
+      ComputePlatform: Server
+
+  webAppDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName:
+        Ref: WebappApplication
+      DeploymentGroupName: csye6225_webapp_deployment_group
+      AutoScalingGroups:
+      - Ref: AutoscalingGroup
+      ServiceRoleArn:
+        Fn::GetAtt:
+        - codeDeployServiceRoleEC2
+        - Arn
+      DeploymentStyle:
+        DeploymentType: IN_PLACE
+        DeploymentOption: WITHOUT_TRAFFIC_CONTROL
+      Ec2TagFilters:
+      - Key: Application Role
+        Value: Web Server
+        Type: KEY_AND_VALUE
+      DeploymentConfigName: CodeDeployDefault.AllAtOnce
+      AutoRollbackConfiguration:
+        Enabled: 'True'
+        Events:
+        - DEPLOYMENT_FAILURE
