@@ -19,7 +19,9 @@
 ##### Commands to be used:
 
 ###### Create a CloudFormation: 
-aws cloudformation create-stack --stack-name <VPCname> --template-body file://csye6225-infra.yml --parameters file://config.json --profile <environment>
+aws cloudformation create-stack --stack-name AWS-CLI-VPC1 --template-body file://csye6225-infra.yml --parameters file://config.json --capabilities CAPABILITY_NAMED_IAM --profile demo --region us-east-2
+
+aws cloudformation create-stack --stack-name AWS-CICD --template-body file://cicd_pipeline.yml --capabilities CAPABILITY_NAMED_IAM  --profile demo --region us-east-2
 
 - dev for Development environment
 - demo for Demo environment
