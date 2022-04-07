@@ -411,14 +411,17 @@ Resources:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
-          -
-            Effect: "Allow"
+          - Effect: "Allow"
             Principal:
               Service:
                 - "ec2.amazonaws.com"
             Action:
               - "sts:AssumeRole"
       Path: "/"
+      ManagedPolicyArns:
+              - arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy
+              - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+              - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
   
   DemoInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -582,7 +585,7 @@ Resources:
       AlarmDescription: Scale down if CPU < 4%
       Period: '60'
       AlarmActions:
-      - !Ref ScaleOutPolicy
+      - !Ref ScaleInPolicy
       Namespace: AWS/EC2
       Dimensions:
       - Name: AutoScalingGroupName
