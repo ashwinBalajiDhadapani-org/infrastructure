@@ -82,7 +82,7 @@
     },
     {
         "ParameterKey": "AMI",
-        "ParameterValue": "ami-0387e1f183a51087e"
+        "ParameterValue": "ami-0c19d38b7b1597dd3"
     },
     {
         "ParameterKey": "DBInstanceIdentifier",
