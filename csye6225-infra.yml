@@ -99,6 +99,15 @@ Parameters:
   DNSName:
     Type: String
     Default: "prod.ashwinbalaji-dhandapani.xyz."
+  LambdaBucketName:
+    Description: LambdaDeployBucket 
+    Type: String
+    Default: lambda.prod.ashwinbalaji-dhandapani.xyz
+  SSLCertificate:
+    Description: SSL Certificate 
+    Type: String
+    Default: arn:aws:acm:us-east-2:184153566286:certificate/8cd4c747-35fa-4bee-a990-fb792158aaaa
+
 Resources:
   myVPC:
     Type: 'AWS::EC2::VPC'
@@ -116,7 +125,7 @@ Resources:
     Properties: 
       AvailabilityZone: !Select [0,!GetAZs '']
       CidrBlock: !Ref SubnetReOneCIDR
-      MapPublicIpOnLaunch: false
+      MapPublicIpOnLaunch: true
       VpcId:
         Ref: myVPC
       Tags:
@@ -128,7 +137,7 @@ Resources:
     Properties: 
       AvailabilityZone: !Select [1,!GetAZs '']
       CidrBlock: !Ref SubnetReTwoCIDR
-      MapPublicIpOnLaunch: false
+      MapPublicIpOnLaunch: true
       VpcId:
         Ref: myVPC
       Tags:
@@ -140,7 +149,7 @@ Resources:
     Properties: 
       AvailabilityZone: !Select [2,!GetAZs '']
       CidrBlock: !Ref SubnetReThreeCIDR
-      MapPublicIpOnLaunch: false
+      MapPublicIpOnLaunch: true
       VpcId:
         Ref: myVPC
       Tags:
@@ -294,24 +303,25 @@ Resources:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: Base Security Group
-      SecurityGroupIngress:
-         - IpProtocol: tcp
-           CidrIp: 0.0.0.0/0
-           FromPort: 22
-           ToPort: 22
-         - IpProtocol: tcp
-           CidrIp: 0.0.0.0/0
-           FromPort: 80
-           ToPort: 80
-         - IpProtocol: tcp
-           CidrIp: 0.0.0.0/0
-           FromPort: 443
-           ToPort: 443
-         - IpProtocol: tcp
-           CidrIp: 0.0.0.0/0
-           FromPort: 3000
-           ToPort: 3000
       VpcId: !Ref myVPC
+  
+  appSecurityIngressOne:
+   Type: 'AWS::EC2::SecurityGroupIngress'
+   Properties:
+      GroupId: !GetAtt application.GroupId
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      SourceSecurityGroupId: !GetAtt csye6225LoadBalancerSecGroup.GroupId
+  
+  appSecurityIngressTwo:
+   Type: 'AWS::EC2::SecurityGroupIngress'
+   Properties:
+      GroupId: !GetAtt application.GroupId
+      IpProtocol: tcp
+      FromPort: 3000
+      ToPort: 3000
+      SourceSecurityGroupId: !GetAtt csye6225LoadBalancerSecGroup.GroupId
   
   DatabaseSecurityGroup:
     DependsOn:
@@ -325,12 +335,26 @@ Resources:
       - IpProtocol: tcp
         FromPort: 3306
         ToPort: 3306
-        SourceSecurityGroupId: !Ref application
+        SourceSecurityGroupId: !GetAtt application.GroupId
       Tags:
       - Key: Name
         Value: database
       VpcId: !Ref myVPC
   
+  SGBaseIngress:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+        - application
+        - GroupId
+      GroupId:
+        Fn::GetAtt:
+        - DatabaseSecurityGroup
+        - GroupId
   S3bucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -372,6 +396,8 @@ Resources:
     Properties: 
       Description: mySQL Database for S3
       Family: mysql8.0
+      Parameters:
+        sql_mode: IGNORE_SPACE
       Tags: 
         - Key: Name
           Value: mysqlRDSparameter
@@ -387,6 +413,8 @@ Resources:
   
   MySqlDbInstance:
     Type: AWS::RDS::DBInstance
+    DependsOn:
+      - rdsSecretKey
     Properties:
       DBName: csye6225
       MasterUsername: !Ref DbUserName
@@ -398,11 +426,14 @@ Resources:
       StorageType: gp2
       PubliclyAccessible: False
       AllocatedStorage: "20"
+      DBParameterGroupName: !Ref RDSDBParameterGroup
       VPCSecurityGroups:
             - !GetAtt "DatabaseSecurityGroup.GroupId"
             - !Ref DatabaseSecurityGroup
       DBInstanceIdentifier: "csye6225"
       MultiAZ: False
+      KmsKeyId: !Ref rdsSecretKey
+      StorageEncrypted: true
   
   RootRole:
     Type: "AWS::IAM::Role"
@@ -478,61 +509,63 @@ Resources:
       Roles:
         - Ref: RootRole
 
-  AutoScalingLaunchConfig:
-    Type: AWS::AutoScaling::LaunchConfiguration
-    Properties:
-      ImageId: !Ref AMI
-      IamInstanceProfile: !Ref DemoInstanceProfile
-      InstanceType: "t2.micro"
-      KeyName: !Ref KeyName
-      BlockDeviceMappings: 
-      - DeviceName: "/dev/xvda"
-        Ebs: 
-          VolumeType: "gp2"
-          DeleteOnTermination: "true"
-          VolumeSize: "20"
-      AssociatePublicIpAddress: "true"
-      SecurityGroups:
-      - !Ref application
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          echo 'export DB_HOSTNAME=${MySqlDbInstance.Endpoint.Address}' >> /etc/environment
-          echo 'export DB_USERNAME=${DbUserName}' >> /etc/environment
-          echo 'export DB_PASSWORD=${DbPassword}' >> /etc/environment
-          echo 'export DB_PORT=${DbPort}' >> /etc/environment
-          echo 'export DB_NAME=${DbName}' >> /etc/environment
-          echo 'export S3_BUCKET_NAME=${S3bucket}' >> /etc/environment
-          echo 'export S3_BUCKET_REGION=${S3BucketRegion}' >> /etc/environment
-          echo 'export AWS_ACCESS_KEY=${AwsAccessKey}' >> /etc/environment
-          echo 'export AWS_SECRET_KEY=${AwsSecretKey}' >> /etc/environment
-          source /etc/environment
-          sudo su root
-          sudo pm2 restart all --update-env
-          sudo pm2 save
-          sudo systemctl daemon-reload
-          cd /home/ec2-user/node_app
-          sudo systemctl start node-service.service
-      LaunchConfigurationName: !Join
-        - "."
-        - - !Select
-            - 0
-            - !Split
-              - "-"
-              - !Select
-                - 2
-                - !Split
-                  - "/"
-                  - !Ref "AWS::StackId"
-          - "asg_launch_config"
-  
+  Ec2InstanceAutoScale: 
+    Type: AWS::EC2::LaunchTemplate
+    DependsOn:
+    - ebsSecretKey
+    Properties: 
+      LaunchTemplateName: !Ref AWS::StackName
+      LaunchTemplateData:
+        BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: "gp2"
+            DeleteOnTermination: true
+            Encrypted: true
+            KmsKeyId: !GetAtt ebsSecretKey.Arn
+        ImageId: !Ref AMI
+        InstanceType: t2.micro
+        KeyName: !Ref KeyName
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: true
+            Groups:
+              - !GetAtt application.GroupId
+            DeleteOnTermination: true
+        IamInstanceProfile:
+          Arn: !GetAtt
+            - DemoInstanceProfile
+            - Arn
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            echo 'export DB_HOSTNAME=${MySqlDbInstance.Endpoint.Address}' >> /etc/environment
+            echo 'export DB_USERNAME=${DbUserName}' >> /etc/environment
+            echo 'export DB_PASSWORD=${DbPassword}' >> /etc/environment
+            echo 'export DB_PORT=${DbPort}' >> /etc/environment
+            echo 'export DB_NAME=${DbName}' >> /etc/environment
+            echo 'export S3_BUCKET_NAME=${S3bucket}' >> /etc/environment
+            echo 'export S3_BUCKET_REGION=${S3BucketRegion}' >> /etc/environment
+            echo 'export AWS_ACCESS_KEY=${AwsAccessKey}' >> /etc/environment
+            echo 'export AWS_SECRET_KEY=${AwsSecretKey}' >> /etc/environment
+            source /etc/environment
+            sudo su root
+            sudo pm2 restart all --update-env
+            sudo pm2 save
+            sudo systemctl daemon-reload
+            cd /home/ec2-user/node_app
+            sudo systemctl start node-service.service
+
   AutoscalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       MinSize: '1'
       MaxSize: '5'
       DesiredCapacity: '1'
-      LaunchConfigurationName: !Ref AutoScalingLaunchConfig
+      LaunchTemplate:
+        LaunchTemplateId: !Ref Ec2InstanceAutoScale
+        Version: !GetAtt Ec2InstanceAutoScale.LatestVersionNumber
       VPCZoneIdentifier:
       - !Ref mySubnet1
       - !Ref mySubnet2
@@ -632,8 +665,10 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroup
       LoadBalancerArn: !Ref csye6225LoadBalancer
-      Port: 80
-      Protocol: HTTP
+      Port: 443
+      Protocol: HTTPS
+      Certificates: 
+      - CertificateArn: !Ref SSLCertificate
 
   DNSRecord:
     Type: AWS::Route53::RecordSetGroup
@@ -698,3 +733,262 @@ Resources:
         Enabled: 'True'
         Events:
         - DEPLOYMENT_FAILURE
+  
+  CodeDeployEC2ServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CodeDeployEC2ServiceRole
+      Description: IAM Role for WebApp and S3
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy"
+  
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: TokenTable
+      BillingMode: PROVISIONED
+      AttributeDefinitions:
+        - AttributeName: username
+          AttributeType: S
+      KeySchema:
+        - AttributeName: username
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1 
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+      - Key: DynamoDBTableName
+        Value: !Sub '${AWS::StackName}-dynamoDB-table'
+
+  EmailListTbl:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: EmailListTbl
+      BillingMode: PROVISIONED
+      AttributeDefinitions:
+        - AttributeName: username
+          AttributeType: S
+      KeySchema:
+        - AttributeName: username
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1 
+      Tags:
+      - Key: DynamoDBTableName
+        Value: !Sub '${AWS::StackName}-EmailListTbl'
+
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    DependsOn:
+      - LambdaFunction
+    Properties:
+      DisplayName: UserVerificationTopic
+      TopicName: UserVerificationTopic
+      Subscription:
+        - Endpoint: !GetAtt LambdaFunction.Arn
+          Protocol: lambda
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-sns-topic'
+
+  LambdaSNSPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - SNSTopic
+    Properties: 
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Principal: sns.amazonaws.com
+      SourceAccount: !Ref 'AWS::AccountId'
+      SourceArn: !Ref SNSTopic
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      RoleName: lambda-execution-role
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  
+  GHLambdaS3Policy:
+    Type: AWS::IAM::Policy
+    DependsOn:
+      - LambdaFunction
+    Properties:
+      Users:
+        - ghactions-app
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:GetObject"
+              - "s3:ListBucket"
+              - "s3:PutObject"
+            Resource:
+              - !Sub arn:aws:s3:::${LambdaBucketName}/
+              - !Sub arn:aws:s3:::${LambdaBucketName}/*
+          - Effect: Allow
+            Action:
+              - "lambda:GetFunction"
+              - "lambda:UpdateFunctionCode"
+            Resource:
+              - !GetAtt LambdaFunction.Arn
+      PolicyName: "GHLambdaS3Policy"
+
+  LambdaPolicy:
+    Type: AWS::IAM::Policy
+    DependsOn:
+      - SNSTopic
+      - DynamoDBTable
+      - EmailListTbl
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "dynamodb:GetItem"
+              - "dynamodb:PutItem"
+              - "dynamodb:UpdateItem"
+            Resource:
+              - !GetAtt DynamoDBTable.Arn
+              - !GetAtt  EmailListTbl.Arn
+          - Effect: Allow
+            Action:
+              - "ses:SendEmail"
+              - "ses:SendRawEmail"
+            Resource:
+              - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/prod.ashwinbalaji-dhandapani.xyz
+          - Effect: Allow
+            Action:
+              - "sns:ListTopics"
+              - "sns:CreateTopic"
+              - "sns:GetTopicAttributes"
+              - "sns:Publish"
+              - "sns:ConfirmSubscription"
+            Resource:
+              - !Ref SNSTopic
+      PolicyName: "LambdaPolicy"
+      Roles:
+        - !Ref LambdaExecutionRole
+        - !Ref CodeDeployEC2ServiceRole
+        - !Ref RootRole
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - LambdaExecutionRole
+    Properties:
+      Code:
+        ZipFile: exports.emailVerification = function (event, context, callback){ console.log('Lambda access test'); callback(null, "Success!"); }
+      Description: Lambda function for verification emails
+      Environment:
+        Variables:
+          DomainName: !Sub prod.ashwinbalaji-dhandapani.xyz
+      FunctionName: emailVerification
+      Handler: emailVerification.emailVerification
+      MemorySize: 128
+      PackageType: Zip
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: nodejs14.x
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-lambdaFunction
+      Timeout: 15
+  
+  rdsSecretKey:
+    Type: AWS::KMS::Key
+    Properties: 
+      Description: Symmetric KMS key for RDS
+      Enabled: true
+      EnableKeyRotation: true
+      PendingWindowInDays: 7
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: rds-key
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+
+  aliasKeyRDS:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/rds
+      TargetKeyId:
+        Ref: rdsSecretKey
+
+  ebsSecretKey:
+    Type: AWS::KMS::Key
+    Properties: 
+      Description: Symmetric KMS key for EBS
+      Enabled: true
+      EnableKeyRotation: true
+      PendingWindowInDays: 7
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: ebs-key
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow use of the key by the default service linked role
+            Effect: Allow
+            Principal:
+              AWS:
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling
+            Action:
+            - kms:Encrypt
+            - kms:Decrypt
+            - kms:ReEncrypt*
+            - kms:GenerateDataKey*
+            - kms:DescribeKey
+            Resource: "*"
+          - Sid: Allow attachment of persistent resources
+            Effect: Allow
+            Principal:
+              AWS:
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling
+            Action:
+            - kms:CreateGrant
+            Resource: "*"
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: true
+
+  aliasKeyEBS:
+      Type: AWS::KMS::Alias
+      Properties:
+        AliasName: alias/ebs
+        TargetKeyId:
+          Ref: ebsSecretKey
